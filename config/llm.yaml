@@ -1,0 +1,12 @@
+profiles:
+  fast:
+    model: "anthropic/claude-haiku-4-5-20251001"
+    temperature: 0.5
+
+  smart:
+    model: "anthropic/claude-sonnet-4-5-20250929"
+    temperature: 0.7
+
+  creative:
+    model: "openai/gpt-4o"
+    temperature: 0.9

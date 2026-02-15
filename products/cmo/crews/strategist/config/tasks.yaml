@@ -1,0 +1,25 @@
+create_strategy:
+  description: >
+    Create a content strategy for a {platform} piece about "{topic}" targeting {audience}.
+
+    Company context:
+    - Name: {company_name}
+    - Product: {company_product}
+    - Voice: {company_voice}
+
+    Language: {language}
+
+    Your strategy must include:
+    1. Angle: the specific perspective or hook that makes this piece stand out
+    2. Key points: 3-5 main arguments or insights to cover
+    3. Tone: specific tone guidance aligned with the company voice
+    4. CTA: what action the reader should take after consuming the content
+    5. Platform guidelines: length, format, and style rules for {platform}
+
+    Ground your strategy in Hormozi's value equation (dream outcome, likelihood,
+    time delay, effort) and Priestley's content principles (ascending transaction,
+    campaign-driven approach).
+  expected_output: >
+    A structured content strategy with clearly labeled sections: Angle, Key Points,
+    Tone, CTA, and Platform Guidelines. Written in {language}.
+  agent: content_strategist

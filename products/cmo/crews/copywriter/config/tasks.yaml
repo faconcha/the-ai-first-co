@@ -1,0 +1,21 @@
+write_content:
+  description: >
+    Write a {platform} piece based on the following content strategy:
+
+    {strategy}
+
+    Company context:
+    - Name: {company_name}
+    - Product: {company_product}
+    - Voice: {company_voice}
+
+    Language: {language}
+
+    Follow the strategy's angle, key points, tone, CTA, and platform guidelines
+    exactly. Write the final, publish-ready content. Do not include meta-commentary
+    or notes - only the content itself.
+  expected_output: >
+    The final, publish-ready content piece for {platform}. Written in {language}.
+    No meta-commentary, headers like "Here is your content", or notes.
+    Just the content itself, ready to copy-paste and publish.
+  agent: copywriter
