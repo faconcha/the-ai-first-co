@@ -1,0 +1,44 @@
+weights:
+  icp_match: 0.30
+  signal_strength: 0.30
+  visibility_gap: 0.20
+  buying_intent: 0.20
+
+thresholds:
+  hot: 70
+  warm: 40
+
+industry_modifiers:
+  saas:
+    icp_match: 1.2
+    signal_strength: 1.0
+  ecommerce:
+    icp_match: 1.0
+    signal_strength: 1.1
+  fintech:
+    icp_match: 1.1
+    signal_strength: 1.0
+  healthcare:
+    icp_match: 1.0
+    signal_strength: 0.9
+  default:
+    icp_match: 1.0
+    signal_strength: 1.0
+
+icp_industries:
+  - saas
+  - software
+  - ecommerce
+  - fintech
+  - marketing
+  - media
+  - retail
+  - technology
+
+buying_intent_boosts:
+  recent_funding: 20
+  new_executive: 15
+  product_launch: 15
+  active_hiring: 10
+  news_mentions: 10
+  intent_signals: 15

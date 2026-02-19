@@ -1,0 +1,98 @@
+# B2B Outreach General Configuration
+
+# LLM Settings (overrides config/llm.yaml for this product)
+llm:
+  provider: "gemini"
+  model: "gemini-2.5-pro"
+  fallback_provider: "anthropic"
+  fallback_model: "claude-sonnet-4-5-20250929"
+
+# Company Research Settings
+research:
+  max_pages_to_scrape: 5
+  timeout_per_page: 30
+  pages_to_fetch:
+    - "/"
+    - "/about"
+    - "/products"
+    - "/solutions"
+    - "/services"
+
+# Prompt Generation Settings
+prompt_generation:
+  default_count: 10
+  llm_profile: "smart"
+  temperature: 0.8
+  max_tokens: 4096
+  categories:
+    - product_discovery
+    - vendor_comparison
+    - problem_solving
+    - best_practices
+
+# Signal Detection Settings
+signals:
+  enabled_detectors:
+    - google_ads
+    - meta_ads
+    - linkedin_activity
+    - youtube_mentions
+  timeout: 60
+  cache_duration: 86400
+
+  youtube:
+    max_results: 10
+
+  # Fallback location settings (used only when country is not auto-detected
+  # from research.country and no --country CLI flag is provided).
+  # Normally the pipeline reads the country from Step 1 research and maps it
+  # to the correct DataForSEO codes via detector.COUNTRY_LOCATION_MAP.
+  location:
+    location_code: 2840
+    language_code: "en"
+    country_code: "US"
+    ad_reached_countries: "US"
+    news_hl: "en-US"
+    news_gl: "US"
+    news_ceid: "US:en"
+
+  # Configurable limits for signal collection (avoids hardcoded slicing)
+  limits:
+    google_ads_keywords: 5
+    meta_ads_to_analyze: 5
+    meta_ad_themes: 3
+    youtube_recent_videos: 3
+    seo_top_keywords: 5
+    news_top_headlines: 5
+    hiring_velocity_cap: 50
+
+# Scoring
+scoring:
+  config_file: scoring.yaml
+
+# Outreach Message Settings
+outreach:
+  channels: ["linkedin", "whatsapp"]
+  max_length:
+    linkedin: 300
+    whatsapp: 1000
+    email: 1000
+  tone: "professional"
+
+# Report Generation Settings
+reports:
+  format: "pdf"
+  include_charts: true
+  template: "executive"
+
+# Output Settings
+output:
+  base_path: "/Users/faconcha/Documents/Bison"
+  folder_pattern: "b2b_outreach_{company_name}"
+
+# Supabase Settings (for contact data)
+supabase:
+  url: ${SUPABASE_URL}
+  key: ${SUPABASE_KEY}
+  contacts_table: "contacts"
+  companies_table: "companies"

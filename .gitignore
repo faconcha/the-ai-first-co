@@ -7,3 +7,5 @@ output/
 *.egg-info/
 dist/
 build/
+products/author_twin/authors/*/knowledge/
+products/author_twin/authors/*/report.md

@@ -1,0 +1,20 @@
+warning: `VIRTUAL_ENV=/Users/faconcha/anaconda3/envs/agents` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+Searching YouTube mentions for 'Falabella' (region=CL)...
+
+=== YouTubeResult (model) ===
+  total_results:              15,691
+  total_views:                8,631,510
+  total_likes:                402
+  total_comments:             24
+  estimated_media_value_usd:  $172,630.20
+  note:                       None
+
+=== Full JSON ===
+{
+  "total_results": 15691,
+  "total_views": 8631510,
+  "total_likes": 402,
+  "total_comments": 24,
+  "estimated_media_value_usd": 172630.2,
+  "note": null
+}

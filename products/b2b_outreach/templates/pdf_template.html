@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Visibility Analysis Report</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Cover Page -->
+    <div class="cover-page">
+        <div class="cover-content">
+            <h1>AI Visibility Analysis</h1>
+            <h2>{{ company_name }}</h2>
+            <div class="cover-meta">
+                <p class="domain">{{ domain }}</p>
+                <p class="industry">{{ industry }}</p>
+                <p class="date">{{ report_date }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive Summary -->
+    <div class="section" style="page-break-before: always;">
+        <h2>Executive Summary</h2>
+        <div class="executive-summary">
+            <p>{{ executive_summary }}</p>
+        </div>
+
+        <!-- Key Metrics Dashboard -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>Mention Rate</h3>
+                <p class="metric-value">{{ mention_rate }}</p>
+                <p class="metric-label">Brand mentions in AI responses</p>
+            </div>
+            <div class="metric-card">
+                <h3>Citation Rate</h3>
+                <p class="metric-value">{{ citation_rate }}</p>
+                <p class="metric-label">Responses with citations</p>
+            </div>
+            <div class="metric-card">
+                <h3>Average Position</h3>
+                <p class="metric-value">{{ avg_position }}</p>
+                <p class="metric-label">Mention position in responses</p>
+            </div>
+            <div class="metric-card">
+                <h3>Sentiment</h3>
+                <p class="metric-value">{{ sentiment }}</p>
+                <p class="metric-label">Overall brand sentiment</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visibility Analysis by Model -->
+    <div class="section">
+        <h2>AI Visibility by Platform</h2>
+        <p class="section-intro">Performance across different AI search engines</p>
+
+        {% for model in model_metrics %}
+        <div class="model-section">
+            <h3>{{ model.name }}</h3>
+            <table>
+                <tr>
+                    <th>Metric</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>Mention Rate</td>
+                    <td><strong>{{ model.mention_rate }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Citation Rate</td>
+                    <td><strong>{{ model.citation_rate }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Average Position</td>
+                    <td><strong>{{ model.avg_position }}</strong></td>
+                </tr>
+                <tr>
+                    <td>Sentiment</td>
+                    <td><strong>{{ model.sentiment }}</strong></td>
+                </tr>
+            </table>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Market Intelligence Signals -->
+    {% if signals %}
+    <div class="section" style="page-break-before: always;">
+        <h2>Market Intelligence</h2>
+        <p class="section-intro">Detected marketing and growth signals</p>
+
+        {% if signals.ads and signals.ads.active %}
+        <div class="signal-box">
+            <h3>🎯 Active Advertising Campaigns</h3>
+            <p><strong>Platforms:</strong> {{ signals.ads.platforms }}</p>
+            <p class="signal-desc">Company is actively investing in paid advertising</p>
+        </div>
+        {% endif %}
+
+        {% if signals.growth and signals.growth.hiring > 0 %}
+        <div class="signal-box">
+            <h3>📈 Growth Signal: Hiring</h3>
+            <p><strong>Hiring Velocity:</strong> {{ signals.growth.hiring }} positions in last 30 days</p>
+            <p><strong>Key Roles:</strong> {{ signals.growth.roles }}</p>
+            <p class="signal-desc">Company is in growth phase, actively expanding team</p>
+        </div>
+        {% endif %}
+
+        {% if signals.social %}
+        <div class="signal-box">
+            <h3>💬 Social Media Activity</h3>
+            <p><strong>LinkedIn Posts:</strong> {{ signals.social.linkedin_posts }}/month</p>
+            <p><strong>YouTube Mentions:</strong> {{ signals.social.youtube_mentions }}</p>
+            <p class="signal-desc">Active social media presence and brand awareness efforts</p>
+        </div>
+        {% endif %}
+
+        {% if signals.seo %}
+        <div class="signal-box">
+            <h3>🔍 SEO Performance</h3>
+            <p><strong>Organic Traffic:</strong> {{ signals.seo.organic_traffic }} monthly visits</p>
+            <p><strong>Keywords Ranked:</strong> {{ signals.seo.keywords_count }}</p>
+            <p><strong>Top Keywords:</strong> {{ signals.seo.top_keywords }}</p>
+            <p><strong>Domain Rank:</strong> {{ signals.seo.domain_rank }}</p>
+            <p class="signal-desc">Strong organic search presence indicates established market position</p>
+        </div>
+        {% endif %}
+
+        {% if signals.content %}
+        <div class="signal-box">
+            <h3>📝 Content Marketing</h3>
+            <p><strong>Blog Activity:</strong> {{ signals.content.blog_activity }}</p>
+            <p><strong>Indexed Pages:</strong> {{ signals.content.recent_pages }}</p>
+            <p><strong>Featured Snippets:</strong> {{ signals.content.featured_snippets }}</p>
+            <p><strong>Knowledge Panel:</strong> {{ 'Yes' if signals.content.knowledge_panel else 'No' }}</p>
+            <p class="signal-desc">Active content creation shows investment in inbound marketing</p>
+        </div>
+        {% endif %}
+
+        {% if signals.prospection and signals.prospection.is_prospecting %}
+        <div class="signal-box prospection-signal">
+            <h3>🎯 Prospection Analysis</h3>
+            <p><strong>Status:</strong> <span class="prospection-{{ signals.prospection.signal_strength }}">{{ signals.prospection.signal_strength|upper }}</span> ({{ signals.prospection.confidence }} confidence)</p>
+            <p><strong>Indicators Detected:</strong></p>
+            <ul>
+                {% for indicator in signals.prospection.indicators %}
+                <li>{{ indicator }}</li>
+                {% endfor %}
+            </ul>
+            <p class="signal-desc">{{ signals.prospection.explanation }}</p>
+        </div>
+        {% endif %}
+
+        {% if signals.funding and signals.funding.has_recent_funding %}
+        <div class="signal-box">
+            <h3>💰 Recent Funding</h3>
+            <p><strong>Round Type:</strong> {{ signals.funding.last_round_type }}</p>
+            {% if signals.funding.last_round_amount_usd and signals.funding.last_round_amount_usd > 0 %}
+            <p><strong>Amount:</strong> ${{ "{:,.0f}".format(signals.funding.last_round_amount_usd) }}</p>
+            {% endif %}
+            <p class="signal-desc">Recent funding round indicates growth momentum and budget availability for new solutions</p>
+        </div>
+        {% endif %}
+
+        {% if signals.news and signals.news.recent_news_count > 0 %}
+        <div class="signal-box">
+            <h3>📰 Recent News Activity</h3>
+            <p><strong>News Mentions:</strong> {{ signals.news.recent_news_count }} in last 30 days</p>
+            {% if signals.news.has_product_launch %}
+            <p><strong>Product Launch:</strong> Yes — new product activity detected</p>
+            {% endif %}
+            {% if signals.news.has_partnership_news %}
+            <p><strong>Partnership News:</strong> Yes</p>
+            {% endif %}
+            {% if signals.news.top_headlines %}
+            <p><strong>Top Headlines:</strong></p>
+            <ul>
+                {% for headline in signals.news.top_headlines %}
+                <li>{{ headline }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            <p class="signal-desc">Active press coverage signals a company in a growth or transition phase</p>
+        </div>
+        {% endif %}
+
+        {% if signals.intent and signals.intent.intent_score > 0 %}
+        <div class="signal-box">
+            <h3>🔥 Buyer Intent Signals</h3>
+            <p><strong>Intent Score:</strong> {{ "%.0f"|format(signals.intent.intent_score * 100) }}%</p>
+            {% if signals.intent.review_sentiment %}
+            <p><strong>Review Sentiment:</strong> {{ signals.intent.review_sentiment|capitalize }}</p>
+            {% endif %}
+            {% if signals.intent.has_competitor_comparisons %}
+            <p><strong>Competitor Comparisons:</strong> Yes — prospects are actively comparing solutions</p>
+            {% endif %}
+            <p class="signal-desc">High intent signals indicate prospects are actively evaluating solutions in this market</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Recommendations -->
+    <div class="section">
+        <h2>Key Recommendations</h2>
+        <ol class="recommendations">
+            <li>
+                <strong>Quick Win:</strong> Focus on content optimization for AI search engines with structured data (FAQ Schema, Product Schema)
+            </li>
+            <li>
+                <strong>Strategic:</strong> Address visibility gaps in specific AI platforms showing lower mention rates
+            </li>
+            <li>
+                <strong>Competitive:</strong> Monitor and respond to competitive mentions in AI-generated content
+            </li>
+            <li>
+                <strong>Long-term:</strong> Build authoritative content that AI models trust and cite
+            </li>
+        </ol>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Generated by Bison AEO - AI Engine Optimization Platform</p>
+        <p>{{ report_date }}</p>
+    </div>
+</body>
+</html>

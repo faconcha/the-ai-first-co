@@ -1,0 +1,41 @@
+name: Daniel Priestley
+slug: daniel_priestley
+description: >
+  Entrepreneur, author, and speaker. Founder of Dent Global and ScoreApp.
+  Author of Key Person of Influence, Oversubscribed, 24 Assets, and
+  Entrepreneur Revolution.
+
+youtube:
+  channels:
+    - name: Daniel Priestley
+      url: "https://www.youtube.com/@danielpriestley"
+    - name: Key Person of Influence
+      url: "https://www.youtube.com/@KeyPersonofInfluence"
+  search_queries:
+    - "Daniel Priestley interview"
+    - "Daniel Priestley keynote"
+    - "Daniel Priestley podcast"
+  transcript_languages: ["en"]
+
+web:
+  urls:
+    - "https://danielpriestley.com/entrepreneur-revolution-book/"
+    - "https://danielpriestley.com/key-person-of-influence-book/"
+    - "https://danielpriestley.com/oversubscribed-book/"
+    - "https://danielpriestley.com/24-assets-book/"
+    - "https://danielpriestley.com/dent-accelerators/"
+    - "https://danielpriestley.com/scorecard-marketing/"
+
+scraping:
+  sleep_min_seconds: 5
+  sleep_max_seconds: 10
+  youtube_sort_by: "newest"
+  max_videos_per_channel: null
+  max_search_results: 50
+  max_workers: 4
+  # Optional: path to cookies file (JSON or Netscape format) from your browser
+  # Export from browser extension like "Get cookies.txt LOCALLY"
+  cookies_file: null
+  # Optional: only scrape during these hours (24h format), e.g., ["09:00", "23:00"]
+  # Set to null to scrape anytime
+  time_window: null

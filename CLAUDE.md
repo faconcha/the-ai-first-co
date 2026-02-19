@@ -2,13 +2,32 @@
 
 AI agent products for businesses, built on CrewAI. Each "product" (CMO, CFO, Legal, etc.) is a set of agents orchestrated by a Flow.
 
+## Two-Track Development Model
+
+Every feature starts as a **Claude Code workflow** (local, zero-cost, fast to iterate) and graduates to a **CrewAI product** when production-ready.
+
+| | Claude Code (`claude/`) | CrewAI (`crews/` + `flow.py`) |
+|---|---|---|
+| **Where** | `products/<name>/claude/` | `products/<name>/crews/`, `flow.py` |
+| **Triggered by** | Claude Code skills, subagents, local scripts | `main.py` CLI → CrewAI Flow |
+| **Cost** | Zero (no LLM API calls) | Billed per LLM call |
+| **Purpose** | Prototyping, data pipelines, orchestration scripts | Production agent workflows |
+| **Runtime** | Your machine, Claude Code session | Any machine, schedulable |
+
+**Rule:** Start in `claude/`. Move to CrewAI only when the feature is stable and needs production deployment.
+
 ## Architecture
 
 ```
-config/          → Shared YAML configs (LLM profiles, company context)
-shared/          → Thin utilities (settings loader, LLM profile resolver)
-products/<name>/ → Each product is a standalone CrewAI Flow + Crews
-output/          → Generated content per product (gitignored)
+config/                    → Shared YAML configs (LLM profiles, company context)
+shared/                    → Thin utilities (settings loader, LLM profile resolver)
+products/<name>/           → Each product folder
+  claude/                  → Claude Code-only: scripts, pipelines, skills implementation
+  crews/                   → CrewAI: crew definitions and agent configs
+  flow.py                  → CrewAI: Flow orchestrator
+  knowledge/               → Shared: domain knowledge markdown files
+.claude/skills/            → Claude Code skill definitions (project-wide)
+output/                    → Generated content per product (gitignored)
 ```
 
 **No platform wrapper.** Products use CrewAI directly. The shared layer is only config loading and LLM profiles.
@@ -36,6 +55,8 @@ To change which model a profile uses, edit `config/llm.yaml`. All agents using t
 ```
 products/<name>/
 ├── __init__.py
+├── claude/              # Claude Code-only: scripts, pipelines, orchestration
+│   └── __init__.py
 ├── flow.py              # CrewAI Flow orchestrator
 ├── crews/
 │   ├── __init__.py
@@ -47,6 +68,8 @@ products/<name>/
 │           └── tasks.yaml
 └── knowledge/           # Optional: markdown files with domain knowledge
 ```
+
+Start by building the feature in `claude/` first. Once stable, implement it in `crews/` + `flow.py` for production.
 
 2. In `flow.py`, create a Flow class with Pydantic state:
 ```python
