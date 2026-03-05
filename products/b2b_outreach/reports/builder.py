@@ -68,15 +68,25 @@ def _generate_executive_summary(company_research, visibility_metrics, signals):
     signals_summary = "No marketing signals detected."
     if signals:
         signal_parts = []
-        if signals.ads and signals.ads.active_campaigns:
-            signal_parts.append(f"Active advertising on {', '.join(signals.ads.platforms)}")
-        if signals.growth and signals.growth.hiring_velocity > 0:
-            signal_parts.append(f"Hiring {signals.growth.hiring_velocity} positions")
-        if signals.social and signals.social.linkedin_activity > 0:
-            signal_parts.append(f"Active on social media")
+        if signals.google_ads.active_campaigns:
+            signal_parts.append(f"Active Google Ads ({signals.google_ads.paid_keywords_count} paid keywords, est. ${signals.google_ads.estimated_paid_cost_usd:,.0f}/mo)")
+        if signals.meta_ads.active_campaigns:
+            signal_parts.append(f"Active Meta Ads ({signals.meta_ads.ad_count} ads on {', '.join(signals.meta_ads.platforms)})")
+        if signals.seo:
+            signal_parts.append(f"Organic traffic valued at ${signals.seo.organic_traffic_value_usd:,.0f}/mo ({signals.seo.keywords_count:,} ranked keywords)")
+            if signals.seo.top_keywords:
+                signal_parts.append(f"Top organic keywords: {', '.join(signals.seo.top_keywords[:3])}")
+        if signals.content:
+            signal_parts.append(f"Blog content: {signals.content.blog_pages} indexed pages")
+        if signals.linkedin_jobs.hiring_velocity > 0:
+            signal_parts.append(f"Hiring {signals.linkedin_jobs.hiring_velocity} positions")
+            if signals.linkedin_jobs.marketing_hiring:
+                signal_parts.append(f"Actively hiring marketing roles: {', '.join(signals.linkedin_jobs.marketing_roles[:3])}")
+        if signals.youtube.video_estimate > 0:
+            signal_parts.append(f"YouTube presence: ~{signals.youtube.video_estimate:,} estimated videos, {signals.youtube.total_views:,} views (from top 50)")
 
         if signal_parts:
-            signals_summary = "; ".join(signal_parts)
+            signals_summary = "\n".join(f"- {p}" for p in signal_parts)
 
     prompt = f"""Write a concise executive summary (2-3 paragraphs) for a B2B visibility analysis report.
 
@@ -94,8 +104,9 @@ Market Signals:
 Requirements:
 - Professional B2B tone
 - Focus on actionable insights
+- Contrast their paid/organic investment with their AI visibility gap
 - Highlight biggest opportunity or concern
-- Keep under 150 words
+- Keep under 200 words
 
 Write only the executive summary text, no title or label.
 """
@@ -156,52 +167,36 @@ def build_outreach_report(company_research, visibility_metrics, signals=None, ou
     signals_data = None
     if signals:
         signals_data = {
-            'ads': {
-                'active': signals.ads.active_campaigns if signals.ads else False,
-                'platforms': ', '.join(signals.ads.platforms) if signals.ads and signals.ads.platforms else 'N/A'
-            } if signals.ads else None,
-            'growth': {
-                'hiring': signals.growth.hiring_velocity if signals.growth else 0,
-                'roles': ', '.join(signals.growth.roles[:3]) if signals.growth and signals.growth.roles else 'N/A'
-            } if signals.growth else None,
-            'social': {
-                'linkedin_posts': signals.social.linkedin_activity if signals.social else 0,
-                'youtube_mentions': signals.social.youtube_mentions if signals.social else 0
-            } if signals.social else None,
+            'google_ads': {
+                'active': signals.google_ads.active_campaigns,
+                'keywords': ', '.join(signals.google_ads.keywords[:3]) if signals.google_ads.keywords else 'N/A',
+                'paid_keywords_count': signals.google_ads.paid_keywords_count,
+                'estimated_paid_traffic': f"{signals.google_ads.estimated_paid_traffic:,.0f}",
+                'estimated_paid_cost_usd': f"${signals.google_ads.estimated_paid_cost_usd:,.0f}",
+            },
+            'meta_ads': {
+                'active': signals.meta_ads.active_campaigns,
+                'platforms': ', '.join(signals.meta_ads.platforms) if signals.meta_ads.platforms else 'N/A',
+                'ad_count': signals.meta_ads.ad_count,
+            },
+            'linkedin_jobs': {
+                'hiring_velocity': signals.linkedin_jobs.hiring_velocity,
+                'marketing_hiring': signals.linkedin_jobs.marketing_hiring,
+                'marketing_roles': ', '.join(signals.linkedin_jobs.marketing_roles[:3]) if signals.linkedin_jobs.marketing_roles else 'N/A',
+            },
+            'youtube': {
+                'video_estimate': signals.youtube.video_estimate,
+                'total_views': f"{signals.youtube.total_views:,}",
+            },
             'seo': {
-                'organic_traffic': f"{signals.seo.organic_traffic_estimate:,}" if signals.seo else 'N/A',
-                'keywords_count': signals.seo.organic_keywords_count if signals.seo else 0,
-                'top_keywords': ', '.join(signals.seo.top_keywords[:3]) if signals.seo and signals.seo.top_keywords else 'N/A',
-                'domain_rank': signals.seo.domain_rank if signals.seo else 0
+                'organic_traffic_volume': f"{signals.seo.organic_traffic_volume:,.0f}",
+                'organic_traffic_value_usd': f"${signals.seo.organic_traffic_value_usd:,.0f}",
+                'keywords_count': signals.seo.keywords_count,
+                'top_keywords': ', '.join(signals.seo.top_keywords[:3]) if signals.seo.top_keywords else 'N/A',
             } if signals.seo else None,
             'content': {
-                'blog_activity': signals.content.blog_activity if signals.content else 'N/A',
-                'recent_pages': signals.content.recent_pages_count if signals.content else 0,
-                'featured_snippets': signals.content.featured_snippets if signals.content else 0,
-                'knowledge_panel': signals.content.knowledge_panel if signals.content else False
+                'blog_pages': signals.content.blog_pages,
             } if signals.content else None,
-            'prospection': {
-                'is_prospecting': signals.prospection.is_prospecting if signals.prospection else False,
-                'confidence': f"{signals.prospection.confidence * 100:.0f}%" if signals.prospection else 'N/A',
-                'signal_strength': signals.prospection.signal_strength if signals.prospection else 'N/A',
-                'indicators': signals.prospection.indicators if signals.prospection else [],
-                'explanation': signals.prospection.explanation if signals.prospection else ''
-            } if signals.prospection else None,
-            'funding': {
-                'has_recent_funding': signals.funding.has_recent_funding if signals.funding else False,
-                'last_round_type': signals.funding.last_round_type if signals.funding else '',
-                'last_round_amount_usd': signals.funding.last_round_amount_usd if signals.funding else 0,
-            } if signals.funding else None,
-            'news': {
-                'recent_news_count': signals.news.recent_news_count if signals.news else 0,
-                'has_product_launch': signals.news.has_product_launch if signals.news else False,
-                'top_headlines': signals.news.top_headlines[:3] if signals.news else [],
-            } if signals.news else None,
-            'intent': {
-                'intent_score': signals.intent.intent_score if signals.intent else 0.0,
-                'review_sentiment': signals.intent.review_sentiment if signals.intent else '',
-                'has_competitor_comparisons': signals.intent.has_competitor_comparisons if signals.intent else False,
-            } if signals.intent else None,
         }
 
     context = {

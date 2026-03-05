@@ -81,20 +81,29 @@ WHATSAPP CONSTRAINTS:
 def _generate_key_insight(visibility_metrics, signals):
     """Generate the most compelling opening insight for the outreach message.
 
-    Prioritizes signal-specific hooks (ads, funding, hiring) over generic
-    mention rate observations, to make each message feel personalized.
+    Prioritizes signal-specific hooks (ads spend vs AI gap, SEO value,
+    hiring velocity) over generic mention rate observations, to make each
+    message feel personalized and data-driven.
     """
     total_metrics = visibility_metrics.get('total', {})
     mention_rate = total_metrics.get('mention_rate', 0) * 100
 
     # Signal-specific insights are more compelling than generic mention rates
     if signals:
-        if signals.ads and signals.ads.active_campaigns:
-            return f"spending on paid ads ({', '.join(signals.ads.platforms)}) but appearing in only {mention_rate:.0f}% of AI-generated answers about your category"
-        elif signals.funding and signals.funding.has_recent_funding:
-            return f"just raised {signals.funding.last_round_type} funding — competitors will race to claim AI search share before you do"
-        elif signals.growth and signals.growth.hiring_velocity > 5:
-            return f"scaling fast ({signals.growth.hiring_velocity} open roles) but only {mention_rate:.0f}% AI mention rate — growth spend won't compound if AI engines don't know you"
+        if signals.google_ads.active_campaigns and signals.google_ads.estimated_paid_cost_usd > 0:
+            return (f"investing ~${signals.google_ads.estimated_paid_cost_usd:,.0f}/mo in Google Ads "
+                    f"but appearing in only {mention_rate:.0f}% of AI-generated answers about your category")
+        elif signals.seo and signals.seo.organic_traffic_value_usd > 10000:
+            return (f"organic SEO worth ${signals.seo.organic_traffic_value_usd:,.0f}/mo across "
+                    f"{signals.seo.keywords_count:,} keywords — but AI engines are a different game, "
+                    f"and your brand only shows up in {mention_rate:.0f}% of AI answers")
+        elif signals.linkedin_jobs.hiring_velocity > 5:
+            return (f"scaling fast ({signals.linkedin_jobs.hiring_velocity} open roles) but only "
+                    f"{mention_rate:.0f}% AI mention rate — growth spend won't compound if AI engines don't know you")
+        elif signals.linkedin_jobs.marketing_hiring:
+            roles_str = ', '.join(signals.linkedin_jobs.marketing_roles[:2])
+            return (f"building out your marketing team ({roles_str}) — the perfect moment to ensure "
+                    f"AI search engines recommend you as often as traditional search does")
 
     # Fallback to mention rate tiers
     if mention_rate < 30:
@@ -106,32 +115,40 @@ def _generate_key_insight(visibility_metrics, signals):
 
 
 def _generate_signals_summary(signals):
-    """Generate a bullet-point summary of detected signals for the LLM prompt."""
+    """Generate a bullet-point summary of detected signals for the LLM prompt.
+
+    Covers all implemented signal categories: ads, SEO, content, hiring, YouTube.
+    Each bullet provides a specific data point the LLM can weave into the message.
+    """
     if not signals:
         return "No specific marketing signals detected."
 
     parts = []
 
-    if signals.ads and signals.ads.active_campaigns:
-        parts.append(f"- Active advertising on {', '.join(signals.ads.platforms)}")
+    if signals.google_ads.active_campaigns:
+        parts.append(f"- Active Google Ads on {', '.join(signals.google_ads.platforms)}")
+        if signals.google_ads.paid_keywords_count > 0:
+            parts.append(f"- Bidding on {signals.google_ads.paid_keywords_count} paid keywords (est. ${signals.google_ads.estimated_paid_cost_usd:,.0f}/mo)")
 
-    if signals.growth and signals.growth.hiring_velocity > 0:
-        parts.append(f"- Hiring {signals.growth.hiring_velocity} positions (growth phase)")
+    if signals.meta_ads.active_campaigns:
+        parts.append(f"- Active Meta Ads: {signals.meta_ads.ad_count} ads on {', '.join(signals.meta_ads.platforms)}")
 
-    if signals.social and signals.social.linkedin_activity > 0:
-        parts.append(f"- Active on LinkedIn ({signals.social.linkedin_activity} posts/month)")
+    if signals.seo:
+        if signals.seo.organic_traffic_value_usd > 0:
+            parts.append(f"- Organic SEO traffic valued at ${signals.seo.organic_traffic_value_usd:,.0f}/mo ({signals.seo.keywords_count:,} ranked keywords)")
+        if signals.seo.top_keywords:
+            parts.append(f"- Top organic keywords: {', '.join(signals.seo.top_keywords[:3])}")
 
-    if signals.funding and signals.funding.has_recent_funding:
-        parts.append(f"- Recently raised {signals.funding.last_round_type} funding")
+    if signals.content and signals.content.blog_pages > 0:
+        parts.append(f"- Blog content: {signals.content.blog_pages} indexed pages")
 
-    if signals.news and signals.news.has_product_launch:
-        parts.append(f"- Recent product launch detected")
+    if signals.linkedin_jobs.hiring_velocity > 0:
+        parts.append(f"- Hiring {signals.linkedin_jobs.hiring_velocity} positions (growth phase)")
+        if signals.linkedin_jobs.marketing_hiring:
+            parts.append(f"- Actively hiring marketing roles: {', '.join(signals.linkedin_jobs.marketing_roles[:3])}")
 
-    if signals.news and signals.news.recent_news_count > 3:
-        parts.append(f"- Active in media ({signals.news.recent_news_count} recent mentions)")
-
-    if signals.intent and signals.intent.has_competitor_comparisons:
-        parts.append(f"- Prospects are comparing you to competitors on review sites")
+    if signals.youtube.video_estimate > 0:
+        parts.append(f"- YouTube: ~{signals.youtube.video_estimate:,} estimated videos, {signals.youtube.total_views:,} views (from top 50)")
 
     if not parts:
         return "- Company is established with online presence"

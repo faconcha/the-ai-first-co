@@ -203,6 +203,7 @@ def _search_google_ads_transparency(
 
             if data.get('status_code') == 20000 and data.get('tasks'):
                 task = data['tasks'][0]
+                task_cost = task.get('cost', 0)
                 if task.get('result'):
                     result = task['result'][0]
                     total_count = result.get('total_count', 0)
@@ -223,7 +224,10 @@ def _search_google_ads_transparency(
                             paid_keywords_count=total_count,
                             estimated_paid_traffic=round(paid_metrics.get('etv', 0), 1),
                             estimated_paid_cost_usd=round(paid_metrics.get('estimated_paid_traffic_cost', 0), 1),
+                            api_cost=task_cost,
                         )
+
+                return models.GoogleAdsResult(api_cost=task_cost)
 
         return models.GoogleAdsResult()
 
@@ -365,10 +369,12 @@ def _search_linkedin_jobs(
 
         job_count = 0
         roles = []
+        total_cost = 0.0
         if response.status_code == 200:
             data = response.json()
             if data.get('status_code') == 20000 and data.get('tasks'):
                 task = data['tasks'][0]
+                total_cost += task.get('cost', 0)
                 result = (task.get('result') or [{}])[0]
                 items = result.get('items') or []
 
@@ -412,6 +418,7 @@ def _search_linkedin_jobs(
             data_mkt = response_mkt.json()
             if data_mkt.get('status_code') == 20000 and data_mkt.get('tasks'):
                 task_mkt = data_mkt['tasks'][0]
+                total_cost += task_mkt.get('cost', 0)
                 result_mkt = (task_mkt.get('result') or [{}])[0]
                 items_mkt = result_mkt.get('items') or []
 
@@ -435,6 +442,7 @@ def _search_linkedin_jobs(
             marketing_hiring=marketing_hiring,
             marketing_roles=marketing_roles[:10],
             source='dataforseo_serp_linkedin',
+            api_cost=total_cost,
         )
 
     except Exception as e:
@@ -445,7 +453,6 @@ def _search_linkedin_jobs(
 def _search_youtube_mentions(
     company_name: str,
     region_code: str = "US",
-    cpv_rate: float = 0.02,
 ) -> models.YouTubeResult:
     """Detect YouTube brand mentions and engagement in the last 30 days.
 
@@ -459,15 +466,13 @@ def _search_youtube_mentions(
            Returns total_results (YouTube's estimate) and up to 10 video IDs.
         2. videos.list — fetches viewCount, likeCount, commentCount for those
            video IDs in a single batch call.
-        3. Computes estimated earned media value as total_views × cpv_rate.
 
     Args:
         company_name: Company name to search for.
         region_code: ISO country code for regional results (default 'US').
-        cpv_rate: Cost-per-view rate for media value estimation (default $0.02).
 
     Returns:
-        YouTubeResult with total_results, engagement stats, and media value.
+        YouTubeResult with total_results and engagement stats.
 
     API quota cost: 100 units (search) + 1 unit (videos) = 101 units per call.
     Free tier: 10,000 units/day → ~99 calls/day.
@@ -494,7 +499,7 @@ def _search_youtube_mentions(
             'type': 'video',
             'publishedAfter': thirty_days_ago,
             'regionCode': region_code,
-            'maxResults': 10,
+            'maxResults': 50,
             'key': api_key,
         }
 
@@ -546,7 +551,6 @@ def _search_youtube_mentions(
             total_views=total_views,
             total_likes=total_likes,
             total_comments=total_comments,
-            estimated_media_value_usd=round(total_views * cpv_rate, 2),
         )
 
     except Exception as e:
@@ -587,7 +591,7 @@ def _detect_seo_performance(
         max_top_keywords: Maximum top keywords to include in the result.
 
     Returns:
-        SEOResult with organic_traffic, organic_traffic_value_usd,
+        SEOResult with organic_traffic_volume, organic_traffic_value_usd,
         keywords_count, and top_keywords.
 
     Env vars required: DATAFORSEO_API_KEY (or DATAFORSEO_LOGIN + DATAFORSEO_PASSWORD)
@@ -617,6 +621,7 @@ def _detect_seo_performance(
 
             if data.get('status_code') == 20000 and data.get('tasks'):
                 task = data['tasks'][0]
+                task_cost = task.get('cost', 0)
                 if task.get('result'):
                     result = task['result'][0]
                     total_count = result.get('total_count', 0)
@@ -630,11 +635,18 @@ def _detect_seo_performance(
                     ]
 
                     return models.SEOResult(
-                        organic_traffic=round(organic_metrics.get('etv', 0), 1),
+                        organic_traffic_volume=round(organic_metrics.get('etv', 0), 1),
                         organic_traffic_value_usd=round(organic_metrics.get('estimated_paid_traffic_cost', 0), 1),
                         keywords_count=total_count,
                         top_keywords=top_keywords,
+                        keywords_is_new=organic_metrics.get('is_new', 0),
+                        keywords_is_up=organic_metrics.get('is_up', 0),
+                        keywords_is_down=organic_metrics.get('is_down', 0),
+                        keywords_is_lost=organic_metrics.get('is_lost', 0),
+                        api_cost=task_cost,
                     )
+
+                return models.SEOResult(api_cost=task_cost)
 
         return models.SEOResult()
 
@@ -691,12 +703,14 @@ def _detect_content_activity(
 
         blog_pages = 0
         blog_urls = []
+        task_cost = 0.0
 
         if response.status_code == 200:
             data = response.json()
 
             if data.get('status_code') == 20000 and data.get('tasks'):
                 task = data['tasks'][0]
+                task_cost = task.get('cost', 0)
                 results = task.get('result') or []
                 if results:
                     result = results[0]
@@ -713,6 +727,7 @@ def _detect_content_activity(
             blog_pages=blog_pages,
             blog_activity=blog_activity,
             blog_urls=blog_urls,
+            api_cost=task_cost,
         )
 
     except Exception as e:
@@ -772,7 +787,6 @@ def detect_all_signals(
     max_google_ads_keywords = limits.get('google_ads_keywords', 5)
     max_meta_ads = limits.get('meta_ads_to_analyze', 5)
     max_ad_themes = limits.get('meta_ad_themes', 3)
-    max_youtube_videos = limits.get('youtube_recent_videos', 3)
     max_seo_keywords = limits.get('seo_top_keywords', 5)
     hiring_cap = limits.get('hiring_velocity_cap', 50)
 
@@ -798,51 +812,49 @@ def detect_all_signals(
                 linkedin_jobs.hiring_velocity, linkedin_jobs.marketing_hiring,
                 linkedin_jobs.marketing_roles[:3])
 
-    youtube_data = _search_youtube_mentions(company_name, region_code=country_code,
-                                             max_recent_videos=max_youtube_videos)
-    logger.info("YouTube result: total_results=%d, views=%d, likes=%d, comments=%d, media_value=$%.2f",
+    youtube_data = _search_youtube_mentions(company_name, region_code=country_code)
+    logger.info("YouTube result: total_results=%d, views=%d, likes=%d, comments=%d",
                 youtube_data.total_results, youtube_data.total_views,
-                youtube_data.total_likes, youtube_data.total_comments,
-                youtube_data.estimated_media_value_usd)
+                youtube_data.total_likes, youtube_data.total_comments)
 
-    # Merge ad signals from Google and Meta into a single AdsSignal
-    ads_active = google_ads.has_ads or meta_ads.has_ads
-
-    ads_platforms = []
-    if google_ads.has_ads:
-        ads_platforms.extend(google_ads.platforms)
-    if meta_ads.has_ads:
-        ads_platforms.extend([p.lower() for p in meta_ads.platforms])
-
-    themes = []
-    themes.extend(google_ads.keywords[:3])
-    themes.extend(meta_ads.themes[:2])
-
-    ads_signal = models.AdsSignal(
-        active_campaigns=ads_active,
-        platforms=list(set(ads_platforms)),
-        themes=themes[:max_ad_themes],
+    # Build one signal per detector function
+    google_ads_signal = models.GoogleAdsSignal(
+        active_campaigns=google_ads.has_ads,
+        platforms=google_ads.platforms,
+        keywords=google_ads.keywords[:max_ad_themes],
+        paid_keywords_count=google_ads.paid_keywords_count,
         estimated_paid_traffic=google_ads.estimated_paid_traffic,
         estimated_paid_cost_usd=google_ads.estimated_paid_cost_usd,
-        paid_keywords_count=google_ads.paid_keywords_count,
-        last_seen=datetime.now() if ads_active else None,
+    )
+
+    meta_ads_signal = models.MetaAdsSignal(
+        active_campaigns=meta_ads.has_ads,
+        platforms=[p.lower() for p in meta_ads.platforms],
+        themes=meta_ads.themes[:max_ad_themes],
         ad_count=meta_ads.count,
     )
 
-    hiring_velocity = linkedin_jobs.hiring_velocity
-    growth_signal = models.GrowthSignal(
-        hiring_velocity=hiring_velocity,
-        roles=linkedin_jobs.roles,
+    # Sort marketing roles by seniority for the LLM summary.
+    # Raw LinkedInJobsResult keeps all roles in original order.
+    senior_keywords = ['cmo', 'chief', 'vp', 'vice president', 'head', 'director',
+                       'gerente', 'subgerente', 'director/a', 'manager']
+    all_marketing_roles = linkedin_jobs.marketing_roles
+    senior_roles = [r for r in all_marketing_roles
+                    if any(kw in r.lower() for kw in senior_keywords)]
+    other_roles = [r for r in all_marketing_roles if r not in senior_roles]
+    sorted_marketing_roles = senior_roles + other_roles
+
+    linkedin_jobs_signal = models.LinkedInJobsSignal(
+        hiring_velocity=linkedin_jobs.hiring_velocity,
         marketing_hiring=linkedin_jobs.marketing_hiring,
-        marketing_roles=linkedin_jobs.marketing_roles,
+        marketing_roles=sorted_marketing_roles,
     )
 
-    social_signal = models.SocialSignal(
-        youtube_total_results=youtube_data.total_results,
-        youtube_total_views=youtube_data.total_views,
-        youtube_total_likes=youtube_data.total_likes,
-        youtube_total_comments=youtube_data.total_comments,
-        youtube_estimated_media_value_usd=youtube_data.estimated_media_value_usd,
+    youtube_signal = models.YouTubeSignal(
+        video_estimate=youtube_data.total_results,
+        total_views=youtube_data.total_views,
+        total_likes=youtube_data.total_likes,
+        total_comments=youtube_data.total_comments,
     )
 
     # Extended signals — remain None when include_extended=False
@@ -858,20 +870,20 @@ def detect_all_signals(
         seo_data = _detect_seo_performance(domain, location_code=location_code,
                                             language_code=language_code,
                                             max_top_keywords=max_seo_keywords)
-        logger.info("SEO result: organic_traffic=%.1f, organic_value=$%.1f, keywords=%d",
-                    seo_data.organic_traffic, seo_data.organic_traffic_value_usd,
+        logger.info("SEO result: organic_traffic_volume=%.1f, organic_value=$%.1f, keywords=%d",
+                    seo_data.organic_traffic_volume, seo_data.organic_traffic_value_usd,
                     seo_data.keywords_count)
 
         seo_signal = models.SEOSignal(
+            organic_traffic_volume=seo_data.organic_traffic_volume,
             organic_traffic_value_usd=seo_data.organic_traffic_value_usd,
+            keywords_count=seo_data.keywords_count,
+            top_keywords=seo_data.top_keywords,
+            keywords_is_new=seo_data.keywords_is_new,
+            keywords_is_up=seo_data.keywords_is_up,
+            keywords_is_down=seo_data.keywords_is_down,
+            keywords_is_lost=seo_data.keywords_is_lost,
         )
-
-        # Compute paid search ratio: paid / (paid + organic)
-        paid_traffic = google_ads.estimated_paid_traffic
-        organic_traffic = seo_data.organic_traffic
-        total_search_traffic = paid_traffic + organic_traffic
-        if total_search_traffic > 0:
-            ads_signal.paid_search_ratio = round(paid_traffic / total_search_traffic, 3)
 
         content_data = _detect_content_activity(domain, location_code=location_code,
                                                  language_code=language_code)
@@ -880,29 +892,20 @@ def detect_all_signals(
 
         content_signal = models.ContentSignal(
             blog_pages=content_data.blog_pages,
-            blog_activity=content_data.blog_activity,
         )
 
-    # Log final signal summary
-    logger.info("Signal detection complete for %s:", company_name)
-    logger.info("  Ads: active=%s, platforms=%s", ads_active, ads_platforms)
-    logger.info("  Hiring: %d positions", hiring_velocity)
-    logger.info("  YouTube: %d results, %d views, $%.2f est. media value",
-                youtube_data.total_results, youtube_data.total_views,
-                youtube_data.estimated_media_value_usd)
-    if seo_signal:
-        logger.info("  SEO: $%s organic traffic value, paid_search_ratio=%.3f",
-                    f"{seo_signal.organic_traffic_value_usd:,.2f}", ads_signal.paid_search_ratio)
-    if content_signal:
-        logger.info("  Content: blog=%s (%d pages)",
-                    content_signal.blog_activity, content_signal.blog_pages)
+    total_api_cost = sum(
+        r.api_cost for r in [google_ads, linkedin_jobs, seo_data, content_data] if r
+    )
 
     signals = models.CompanySignals(
-        ads=ads_signal,
-        growth=growth_signal,
-        social=social_signal,
+        google_ads=google_ads_signal,
+        meta_ads=meta_ads_signal,
+        linkedin_jobs=linkedin_jobs_signal,
+        youtube=youtube_signal,
         seo=seo_signal,
         content=content_signal,
+        total_api_cost=total_api_cost,
     )
 
     raw_signals = models.RawSignals(

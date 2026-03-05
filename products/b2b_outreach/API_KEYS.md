@@ -11,9 +11,6 @@ All keys should be set as environment variables in the project `.env` file.
 | `META_ACCESS_TOKEN` | Yes | Meta Ad Library (Facebook/Instagram) | [Meta Business](https://business.facebook.com/) |
 | `YOUTUBE_API_KEY` | Yes | YouTube mention detection | [Google Cloud Console](https://console.cloud.google.com/) |
 | `CRUNCHBASE_API_KEY` | Yes | Funding signal detection | [crunchbase.com](https://www.crunchbase.com/) |
-| `HUNTER_API_KEY` | Yes | Contact enrichment + email verification | [hunter.io](https://hunter.io/) |
-| `APOLLO_API_KEY` | No (fallback) | Contact enrichment (second source) | [apollo.io](https://www.apollo.io/) |
-| `ROCKETREACH_API_KEY` | No (fallback) | Contact enrichment (third source) | [rocketreach.co](https://rocketreach.co/) |
 | `SUPABASE_URL` | Yes | Contact and company data storage | [supabase.com](https://supabase.com/) |
 | `SUPABASE_KEY` | Yes | Contact and company data storage | [supabase.com](https://supabase.com/) |
 

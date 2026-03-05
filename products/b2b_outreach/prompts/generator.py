@@ -8,7 +8,9 @@ Generate realistic product discovery prompts using LLM with Pydantic structured 
 import yaml
 import os
 import logging
+from typing import List
 
+from products.b2b_outreach import models
 from products.b2b_outreach import schemas
 from products.b2b_outreach.prompts import templates
 from shared import llm_utils
@@ -35,19 +37,18 @@ LANGUAGE_INSTRUCTIONS = {
 }
 
 
-def generate_discovery_prompts(company_research, n_prompts=10, language="es"):
+def generate_discovery_prompts(company_research, n_prompts=3, language="es") -> List[models.DiscoveryPrompt]:
     """
     Generate realistic product discovery prompts using LLM.
 
     Args:
         company_research: CompanyResearch object with company information.
-        n_prompts: Number of prompts to generate (default: 10).
+        n_prompts: Number of prompts to generate (default: 3).
         language: Language code for the generated queries ("es", "en", "pt"). Defaults to "es".
 
     Returns:
-        List of prompt strings.
+        List of DiscoveryPrompt objects.
     """
-    # Load LLM settings (temperature, profile, etc.) from config
     yaml_config = _load_config()
     prompt_config = yaml_config.get('prompt_generation', {})
 
@@ -60,7 +61,6 @@ def generate_discovery_prompts(company_research, n_prompts=10, language="es"):
         f"Write all queries in {language}."
     )
 
-    # Flatten lists to comma-separated strings for the prompt template
     products_str = ', '.join(company_research.products) if company_research.products else 'N/A'
     services_str = ', '.join(company_research.services) if company_research.services else 'N/A'
     pain_points_str = ', '.join(company_research.pain_points) if company_research.pain_points else 'N/A'
@@ -85,7 +85,11 @@ def generate_discovery_prompts(company_research, n_prompts=10, language="es"):
             temperature=temperature,
             max_tokens=max_tokens
         )
-        return result.prompts[:n_prompts]
+
+        return [
+            models.DiscoveryPrompt(query=q, language=language)
+            for q in result.prompts[:n_prompts]
+        ]
 
     except Exception as e:
         logger.error("Error generating prompts: %s", e)

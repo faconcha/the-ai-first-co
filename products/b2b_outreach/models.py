@@ -28,6 +28,7 @@ class GoogleAdsResult(BaseModel):
     paid_keywords_count: int = 0
     estimated_paid_traffic: float = 0.0
     estimated_paid_cost_usd: float = 0.0
+    api_cost: float = 0.0
     note: Optional[str] = None
 
 
@@ -47,6 +48,7 @@ class LinkedInJobsResult(BaseModel):
     marketing_hiring: bool = False
     marketing_roles: List[str] = Field(default_factory=list)
     source: str = ""
+    api_cost: float = 0.0
     note: Optional[str] = None
 
 
@@ -60,16 +62,20 @@ class YouTubeResult(BaseModel):
     total_views: int = 0
     total_likes: int = 0
     total_comments: int = 0
-    estimated_media_value_usd: float = 0.0
     note: Optional[str] = None
 
 
 class SEOResult(BaseModel):
     """Raw result from _detect_seo_performance (DataForSEO ranked_keywords organic)."""
-    organic_traffic: float = 0.0
+    organic_traffic_volume: float = 0.0
     organic_traffic_value_usd: float = 0.0
     keywords_count: int = 0
     top_keywords: List[str] = Field(default_factory=list)
+    keywords_is_new: int = 0
+    keywords_is_up: int = 0
+    keywords_is_down: int = 0
+    keywords_is_lost: int = 0
+    api_cost: float = 0.0
     note: Optional[str] = None
 
 
@@ -78,47 +84,7 @@ class ContentResult(BaseModel):
     blog_pages: int = 0
     blog_activity: str = "unknown"
     blog_urls: List[str] = Field(default_factory=list)
-    note: Optional[str] = None
-
-
-class ProspectionResult(BaseModel):
-    """Raw result from _detect_prospection_signals (computed from other signals)."""
-    is_prospecting: bool = False
-    confidence: float = 0.0
-    indicators: List[str] = Field(default_factory=list)
-    signal_strength: str = "weak"
-    explanation: str = ""
-
-
-class FundingResult(BaseModel):
-    """Raw result from _detect_funding_signals (Crunchbase API)."""
-    has_recent_funding: bool = False
-    last_round_type: str = ""
-    last_round_amount_usd: int = 0
-    last_round_date: Optional[str] = None
-    total_funding_usd: int = 0
-    investors: List[str] = Field(default_factory=list)
-    note: Optional[str] = None
-
-
-class NewsResult(BaseModel):
-    """Raw result from _detect_news_signals (Google News RSS)."""
-    recent_news_count: int = 0
-    has_product_launch: bool = False
-    has_partnership_news: bool = False
-    has_acquisition_news: bool = False
-    top_headlines: List[str] = Field(default_factory=list)
-    last_news_date: Optional[str] = None
-    note: Optional[str] = None
-
-
-class IntentResult(BaseModel):
-    """Raw result from _detect_intent_signals (G2 reviews)."""
-    has_recent_reviews: bool = False
-    review_sentiment: str = ""
-    review_count: int = 0
-    has_competitor_comparisons: bool = False
-    intent_score: float = 0.0
+    api_cost: float = 0.0
     note: Optional[str] = None
 
 
@@ -130,10 +96,6 @@ class RawSignals(BaseModel):
     youtube: YouTubeResult = Field(default_factory=YouTubeResult)
     seo: Optional[SEOResult] = None
     content: Optional[ContentResult] = None
-    prospection: Optional[ProspectionResult] = None
-    funding: Optional[FundingResult] = None
-    news: Optional[NewsResult] = None
-    intent: Optional[IntentResult] = None
 
 
 # ---------------------------------------------------------------------------
@@ -171,100 +133,78 @@ class CompanyResearch(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class AdsSignal(BaseModel):
-    """Advertising activity signal."""
+class GoogleAdsSignal(BaseModel):
+    """Google Ads signal (from _search_google_ads_transparency)."""
+    active_campaigns: bool = False
+    platforms: List[str] = Field(default_factory=list)
+    keywords: List[str] = Field(default_factory=list)
+    paid_keywords_count: int = 0
+    estimated_paid_traffic: float = 0.0
+    estimated_paid_cost_usd: float = 0.0
+
+
+class MetaAdsSignal(BaseModel):
+    """Meta Ads signal (from _search_meta_ads_library)."""
     active_campaigns: bool = False
     platforms: List[str] = Field(default_factory=list)
     themes: List[str] = Field(default_factory=list)
-    estimated_paid_traffic: float = 0.0
-    estimated_paid_cost_usd: float = 0.0
-    paid_keywords_count: int = 0
-    paid_search_ratio: float = 0.0
-    last_seen: Optional[datetime.datetime] = None
     ad_count: int = 0
 
 
-class GrowthSignal(BaseModel):
-    """Company growth signal."""
+class LinkedInJobsSignal(BaseModel):
+    """LinkedIn Jobs signal (from _search_linkedin_jobs)."""
     hiring_velocity: int = 0
-    roles: List[str] = Field(default_factory=list)
     marketing_hiring: bool = False
     marketing_roles: List[str] = Field(default_factory=list)
-    funding_news: List[Dict[str, Any]] = Field(default_factory=list)
-    growth_indicators: List[str] = Field(default_factory=list)
 
 
-class SocialSignal(BaseModel):
-    """Social media activity signal."""
-    linkedin_activity: int = 0
-    youtube_total_results: int = 0
-    youtube_total_views: int = 0
-    youtube_total_likes: int = 0
-    youtube_total_comments: int = 0
-    youtube_estimated_media_value_usd: float = 0.0
+class YouTubeSignal(BaseModel):
+    """YouTube signal (from _search_youtube_mentions)."""
+    video_estimate: int = 0
+    total_views: int = 0
+    total_likes: int = 0
+    total_comments: int = 0
 
 
 class SEOSignal(BaseModel):
-    """SEO and organic search performance signal."""
+    """SEO signal (from _detect_seo_performance)."""
+    organic_traffic_volume: float = 0.0
     organic_traffic_value_usd: float = 0.0
+    keywords_count: int = 0
+    top_keywords: List[str] = Field(default_factory=list)
+    keywords_is_new: int = 0
+    keywords_is_up: int = 0
+    keywords_is_down: int = 0
+    keywords_is_lost: int = 0
 
 
 class ContentSignal(BaseModel):
-    """Content marketing activity signal."""
+    """Content signal (from _detect_content_activity)."""
     blog_pages: int = 0
-    blog_activity: str = ""
-
-
-class ProspectionSignal(BaseModel):
-    """Active prospection indicators."""
-    is_prospecting: bool = False
-    confidence: float = 0.0
-    indicators: List[str] = Field(default_factory=list)
-    signal_strength: str = ""
-    explanation: str = ""
-
-
-class FundingSignal(BaseModel):
-    """Funding round signal."""
-    has_recent_funding: bool = False
-    last_round_type: str = ""
-    last_round_amount_usd: int = 0
-    last_round_date: Optional[str] = None
-    total_funding_usd: int = 0
-    investors: List[str] = Field(default_factory=list)
-
-
-class NewsSignal(BaseModel):
-    """News and press signal."""
-    recent_news_count: int = 0
-    has_product_launch: bool = False
-    has_partnership_news: bool = False
-    has_acquisition_news: bool = False
-    top_headlines: List[str] = Field(default_factory=list)
-    last_news_date: Optional[str] = None
-
-
-class IntentSignal(BaseModel):
-    """Buyer intent signal."""
-    has_recent_reviews: bool = False
-    review_sentiment: str = ""
-    review_count: int = 0
-    has_competitor_comparisons: bool = False
-    intent_score: float = 0.0
 
 
 class CompanySignals(BaseModel):
     """All detected signals for a company."""
-    ads: AdsSignal = Field(default_factory=AdsSignal)
-    growth: GrowthSignal = Field(default_factory=GrowthSignal)
-    social: SocialSignal = Field(default_factory=SocialSignal)
+    google_ads: GoogleAdsSignal = Field(default_factory=GoogleAdsSignal)
+    meta_ads: MetaAdsSignal = Field(default_factory=MetaAdsSignal)
+    linkedin_jobs: LinkedInJobsSignal = Field(default_factory=LinkedInJobsSignal)
+    youtube: YouTubeSignal = Field(default_factory=YouTubeSignal)
     seo: Optional[SEOSignal] = None
     content: Optional[ContentSignal] = None
-    prospection: Optional[ProspectionSignal] = None
-    funding: Optional[FundingSignal] = None
-    news: Optional[NewsSignal] = None
-    intent: Optional[IntentSignal] = None
+    total_api_cost: float = 0.0
     detected_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
+
+
+# ---------------------------------------------------------------------------
+# Discovery Prompts
+# ---------------------------------------------------------------------------
+
+
+class DiscoveryPrompt(BaseModel):
+    """A single discovery prompt for AEO visibility testing."""
+    query: str
+    language: str = "es"
+    generated_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow)
 
 
 # ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@ warning: `VIRTUAL_ENV=/Users/faconcha/anaconda3/envs/agents` does not match the 
 Detecting content activity for 'falabella.com' (location=2152, lang=es)...
 
 === ContentResult (model) ===
-  blog_pages:     269
+  blog_pages:     115
   blog_activity:  active
   blog_urls:      (10 URLs)
     - https://www.falabella.com/falabella-cl/page/blog-de-tendencias-online
@@ -10,16 +10,16 @@ Detecting content activity for 'falabella.com' (location=2152, lang=es)...
     - https://www.falabella.com/falabella-cl/page/blog-como-impulsar-ventas-60-dias
     - https://www.falabella.com/falabella-cl/page/blog-liderando-el-camino-hacia-un-marketplace-sostenible
     - https://www.falabella.com/falabella-cl/page/blog-que-es-la-estrategia-de-precios
-    - https://www.falabella.com/falabella-cl/page/blog-omnicanalidad
+    - https://www.falabella.com/falabella-cl/page/blog/cuanto-consume-un-refrigerador
+    - https://www.falabella.com/falabella-cl/page/blog-tendencias-en-ecommerce-2023
+    - https://www.falabella.com/falabella-cl/page/blog/ideas-de-regalo-para-amigo-secreto
     - https://www.falabella.com/falabella-cl/page/blog-cambio-de-temporada
     - https://www.falabella.com/falabella-cl/page/blog-live-shopping-una-nueva-experiencia-de-compra
-    - https://www.falabella.com/falabella-cl/page/blog-tendencias-en-ecommerce-2023
-    - https://www.falabella.com/falabella-cl/page/blog-importancia-evaluaciones-ecommerce
   note:           None
 
 === Full JSON ===
 {
-  "blog_pages": 269,
+  "blog_pages": 115,
   "blog_activity": "active",
   "blog_urls": [
     "https://www.falabella.com/falabella-cl/page/blog-de-tendencias-online",
@@ -27,11 +27,12 @@ Detecting content activity for 'falabella.com' (location=2152, lang=es)...
     "https://www.falabella.com/falabella-cl/page/blog-como-impulsar-ventas-60-dias",
     "https://www.falabella.com/falabella-cl/page/blog-liderando-el-camino-hacia-un-marketplace-sostenible",
     "https://www.falabella.com/falabella-cl/page/blog-que-es-la-estrategia-de-precios",
-    "https://www.falabella.com/falabella-cl/page/blog-omnicanalidad",
-    "https://www.falabella.com/falabella-cl/page/blog-cambio-de-temporada",
-    "https://www.falabella.com/falabella-cl/page/blog-live-shopping-una-nueva-experiencia-de-compra",
+    "https://www.falabella.com/falabella-cl/page/blog/cuanto-consume-un-refrigerador",
     "https://www.falabella.com/falabella-cl/page/blog-tendencias-en-ecommerce-2023",
-    "https://www.falabella.com/falabella-cl/page/blog-importancia-evaluaciones-ecommerce"
+    "https://www.falabella.com/falabella-cl/page/blog/ideas-de-regalo-para-amigo-secreto",
+    "https://www.falabella.com/falabella-cl/page/blog-cambio-de-temporada",
+    "https://www.falabella.com/falabella-cl/page/blog-live-shopping-una-nueva-experiencia-de-compra"
   ],
+  "api_cost": 0.01,
   "note": null
 }

@@ -90,9 +90,16 @@ output:
   base_path: "/Users/faconcha/Documents/Bison"
   folder_pattern: "b2b_outreach_{company_name}"
 
-# Supabase Settings (for contact data)
+# Supabase CRM Settings
 supabase:
   url: ${SUPABASE_URL}
   key: ${SUPABASE_KEY}
-  contacts_table: "contacts"
-  companies_table: "companies"
+  tables:
+    companies: "companies"
+    contacts: "contacts"
+    deals: "deals"
+    activities: "activities"
+    prospects: "prospects"
+    prospects_demo: "prospects_demo"
+    campaigns: "campaigns"
+    campaign_contacts: "campaign_contacts"

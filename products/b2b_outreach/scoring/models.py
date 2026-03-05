@@ -1,4 +1,3 @@
-from typing import Optional
 from enum import Enum
 
 from pydantic import BaseModel
@@ -10,18 +9,30 @@ class ScoreTier(str, Enum):
     COLD = "cold"  # < 40
 
 
+class SignalScores(BaseModel):
+    """Per-signal scores (each 0-100). Caps reflect data quality."""
+    google_ads: float = 0.0
+    meta_ads: float = 0.0        # capped at 80
+    seo: float = 0.0
+    content: float = 0.0         # capped at 70
+    linkedin_jobs: float = 0.0
+    youtube: float = 0.0         # capped at 55
+    visibility_gap: float = 0.0
+
+
 class ScoringWeights(BaseModel):
-    icp_match: float = 0.3
-    signal_strength: float = 0.3
-    visibility_gap: float = 0.2
-    buying_intent: float = 0.2
+    """CMO-driven weights for each signal. Must sum to 1.0."""
+    seo: float = 0.25
+    visibility_gap: float = 0.20
+    google_ads: float = 0.15
+    linkedin_jobs: float = 0.15
+    content: float = 0.10
+    meta_ads: float = 0.10
+    youtube: float = 0.05
 
 
 class LeadScore(BaseModel):
-    total_score: float            # 0-100
+    total_score: float
     tier: ScoreTier
-    icp_match_score: float        # 0-100
-    signal_strength_score: float  # 0-100
-    visibility_gap_score: float   # 0-100
-    buying_intent_score: float    # 0-100
+    signal_scores: SignalScores
     reasoning: str

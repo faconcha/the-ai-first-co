@@ -20,5 +20,6 @@ Detecting SEO performance for 'falabella.com' (location=2152, lang=es)...
     "jumbos",
     "sodimac"
   ],
+  "api_cost": 0.0105,
   "note": null
 }

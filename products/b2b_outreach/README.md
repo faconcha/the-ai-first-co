@@ -1,6 +1,6 @@
 # B2B Outreach Toolkit
 
-General-purpose modules for B2B outbound selling workflows: market signal detection, lead scoring, contact enrichment, campaign sequencing, and message formatting.
+General-purpose modules for B2B outbound selling workflows: market signal detection, lead scoring, campaign sequencing, and message formatting.
 
 ## Pipeline Flow
 
@@ -19,24 +19,18 @@ flowchart TD
     end
 
     subgraph STEP3["Step 3 · Lead Scoring"]
-        SC["⚙️ AUTO\nICP Match 30% + Signal Strength 30%\n+ Visibility Gap 20% + Buying Intent 20%\n→ HOT ≥70 · WARM 40-69 · COLD <40"]
+        SC["⚙️ AUTO\n7 per-signal scores (0-100)\nSEO 25% · Gap 20% · Ads 15% · Hiring 15%\nContent 10% · Meta 10% · YouTube 5%\n→ HOT ≥70 · WARM 40-69 · COLD <40"]
     end
 
-    subgraph STEP4["Step 4 · Contact Enrichment"]
-        C1["⚙️ AUTO · Supabase prospect lookup"]
-        C2["⚙️ AUTO · Email verification via Hunter.io"]
-        C1 --> C2
-    end
-
-    subgraph STEP5["Step 5 · Discovery Prompts"]
+    subgraph STEP4["Step 4 · Discovery Prompts"]
         P1["🔴 PAID · Gemini smart\nGenerates N search queries\nin target language (es/en/pt)"]
     end
 
-    subgraph STEP6["Step 6 · PDF Report"]
+    subgraph STEP5["Step 5 · PDF Report"]
         RPT["🔴 PAID · Gemini smart\nExecutive summary\n+ Jinja2 → WeasyPrint PDF"]
     end
 
-    subgraph STEP7["Step 7 · Outreach Messages"]
+    subgraph STEP6["Step 6 · Outreach Messages"]
         M1["🔴 PAID · Gemini smart\nPer-channel message generation"]
         M2["LinkedIn (300 chars) · WhatsApp (1000 chars)"]
         M1 --> M2
@@ -52,10 +46,8 @@ flowchart TD
     STEP3 --> STEP4
     STEP4 --> STEP5
     STEP5 --> STEP6
-    STEP6 --> STEP7
-    STEP7 --> OUTPUT
-    DB -.->|contact lookup| STEP4
-    DB -.->|contact name| STEP7
+    STEP6 --> OUTPUT
+    DB -.->|contact name| STEP6
 
     style INPUT fill:#e3f2fd,stroke:#1565c0
     style OUTPUT fill:#e8f5e9,stroke:#2e7d32
@@ -71,7 +63,7 @@ flowchart TD
 
 **Legend:** 🟢 Claude Code skill (free) · ⚙️ Automated APIs/config (no LLM) · 🔴 Paid LLM call (Gemini)
 
-**Skip flags:** Each step can be skipped independently (`--skip-research`, `--basic-signals`, `--skip-enrichment`, `--skip-prompts`, `--skip-report`, `--skip-messages`). Steps 6 & 7 also require `visibility_metrics` from an external AEO pipeline.
+**Skip flags:** Each step can be skipped independently (`--skip-research`, `--basic-signals`, `--skip-prompts`, `--skip-report`, `--skip-messages`). Steps 5 & 6 also require `visibility_metrics` from an external AEO pipeline.
 
 **External services per step:**
 
@@ -80,10 +72,9 @@ flowchart TD
 | 1. Research | 🟢 Skill | Claude Code (`/research-company`) | WebSearch, WebFetch — free |
 | 2. Signals | ⚙️ Auto | — | DataForSEO, Meta, YouTube, Crunchbase, Google News, G2 |
 | 3. Scoring | ⚙️ Auto | — | Config-driven (`scoring.yaml`) |
-| 4. Enrichment | ⚙️ Auto | — | Supabase, Hunter.io |
-| 5. Prompts | 🔴 Paid | Gemini (`smart`) | — |
-| 6. Report | 🔴 Paid | Gemini (`smart`) | WeasyPrint (local) |
-| 7. Messages | 🔴 Paid | Gemini (`smart`) | Supabase |
+| 4. Prompts | 🔴 Paid | Gemini (`smart`) | — |
+| 5. Report | 🔴 Paid | Gemini (`smart`) | WeasyPrint (local) |
+| 6. Messages | 🔴 Paid | Gemini (`smart`) | Supabase |
 
 ## Architecture
 
@@ -98,10 +89,6 @@ products/b2b_outreach/
 ├── scoring/
 │   ├── models.py              # ScoreTier, ScoringWeights, LeadScore
 │   └── lead_scorer.py         # Lead scoring algorithm (ICP, signals, visibility, intent)
-├── enrichment/
-│   ├── models.py              # ContactRole, EnrichedContact, EmailVerificationStatus
-│   ├── contact_finder.py      # Hunter.io, Apollo.io, RocketReach
-│   └── email_verifier.py      # Email verification via Hunter.io
 ├── campaigns/
 │   ├── models.py              # Campaign, Touch, EngagementEvent
 │   ├── sequencer.py           # Multi-touch campaign scheduling
@@ -116,7 +103,7 @@ products/b2b_outreach/
 │   ├── pdf_template.html      # PDF report Jinja2 template
 │   └── styles.css             # PDF styling
 └── claude/
-    └── run_pipeline.py        # Standalone signal + scoring + enrichment pipeline
+    └── run_pipeline.py        # Standalone signal + scoring + outreach pipeline
 ```
 
 ## Modules
@@ -135,16 +122,16 @@ Detects 9 signal types from external APIs:
 - **Intent** (G2 reviews) — buyer intent signals
 
 ### scoring/lead_scorer.py
-Weighted scoring across 4 dimensions:
-- **ICP Match** (30%) — industry fit, audience, hiring velocity
-- **Signal Strength** (30%) — ads, growth, social, SEO, content, funding, news
-- **Visibility Gap** (20%) — lower AI mention rate = higher opportunity
-- **Buying Intent** (20%) — funding, executive hires, product launches
+Per-signal scoring (each 0-100) combined via CMO-driven weights:
+- **SEO** (25%) — organic traffic value, keyword trends, breadth
+- **Visibility Gap** (20%) — inverse AI mention rate + citation gap
+- **Google Ads** (15%) — estimated spend, keyword count
+- **LinkedIn Jobs** (15%) — hiring velocity, marketing roles, exec hires
+- **Content** (10%) — blog page count (capped at 70)
+- **Meta Ads** (10%) — ad count, platform diversity (capped at 80)
+- **YouTube** (5%) — video count, views, engagement (capped at 55)
 
-Tiers: Hot (>=70), Warm (40-69), Cold (<40). Config-driven via `scoring.yaml`.
-
-### enrichment/
-Contact discovery across 3 providers (Hunter.io, Apollo.io, RocketReach) with email verification. Cascading search: tries Hunter first, fills gaps with Apollo, falls back to RocketReach for critical roles.
+Tiers: Hot (>=70), Warm (40-69), Cold (<40). All parameters in `scoring.yaml`.
 
 ### campaigns/
 Campaign models and sequencer for multi-touch outreach:
@@ -168,9 +155,6 @@ Channel-specific message formatters (LinkedIn: professional, no emojis, 300 char
 | `META_ACCESS_TOKEN` | Meta Ad Library | For Meta ads detection |
 | `YOUTUBE_API_KEY` | YouTube Data API | For YouTube mentions |
 | `CRUNCHBASE_API_KEY` | Crunchbase | For funding signals |
-| `HUNTER_API_KEY` | Hunter.io | For contact enrichment + email verification |
-| `APOLLO_API_KEY` | Apollo.io | For contact enrichment |
-| `ROCKETREACH_API_KEY` | RocketReach | For contact enrichment |
 | `SUPABASE_URL` | Supabase | For contact storage |
 | `SUPABASE_KEY` | Supabase | For contact storage |
 

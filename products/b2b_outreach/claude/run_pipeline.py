@@ -3,8 +3,7 @@ B2B Outreach Pipeline (Claude Code script)
 ==========================================
 
 Run the B2B outreach pipeline: company research, signal detection,
-lead scoring, contact enrichment, prompt generation, report building,
-and message generation.
+lead scoring, prompt generation, report building, and message generation.
 
 All intermediate results and logs are saved to an output directory for auditing.
 
@@ -15,17 +14,15 @@ Usage:
 """
 
 import argparse
+import datetime
 import json
 import logging
 import os
 import yaml
-import datetime
 from pathlib import Path
 
 from products.b2b_outreach.signals import marketing_detector
 from products.b2b_outreach.scoring import lead_scorer
-from products.b2b_outreach.enrichment import contact_finder
-from products.b2b_outreach.enrichment import email_verifier
 from products.b2b_outreach.research import company_analyzer
 from products.b2b_outreach.prompts import generator
 from products.b2b_outreach.reports import builder
@@ -78,14 +75,14 @@ def run_pipeline(
     company_name,
     domain,
     industry="Unknown",
-    skip_enrichment=False,
     include_extended_signals=True,
     skip_research=False,
     skip_prompts=False,
     skip_report=False,
     skip_messages=False,
-    n_prompts=10,
+    n_prompts=3,
     contact_id=None,
+    contact_name=None,
     visibility_metrics=None,
     output_report_path=None,
     country=None,
@@ -103,14 +100,14 @@ def run_pipeline(
         company_name: Company name.
         domain: Company domain (e.g., 'stripe.com').
         industry: Company industry.
-        skip_enrichment: Skip contact enrichment.
-        include_extended_signals: Include SEO, content, prospection signals.
+        include_extended_signals: Include SEO and content signals.
         skip_research: Skip website research (use minimal CompanyResearch).
         skip_prompts: Skip discovery prompt generation.
         skip_report: Skip PDF report generation.
         skip_messages: Skip outreach message generation.
         n_prompts: Number of discovery prompts to generate.
         contact_id: Supabase contact ID for message personalization.
+        contact_name: Contact name for message personalization (skips Supabase lookup).
         visibility_metrics: Pre-computed visibility metrics (from AEO pipeline).
         output_report_path: Path to save PDF report.
         country: ISO country code (e.g., 'CL', 'MX'). Auto-detected from research if omitted.
@@ -129,8 +126,8 @@ def run_pipeline(
     logger.info("Output directory: %s", output_dir)
     logger.info("=" * 60)
 
-    # Step 1/7: Company research
-    logger.info("Step 1/7: Company research")
+    # Step 1/6: Company research
+    logger.info("Step 1/6: Company research")
     existing_research = research_path or (output_dir / "01_research.json")
     if existing_research and Path(existing_research).is_file():
         logger.info("  Loading pre-built research from %s", existing_research)
@@ -170,19 +167,25 @@ def run_pipeline(
         else:
             logger.info("  Country %s not in location map, using YAML defaults", resolved_country)
 
-    # Step 2/7: Signal detection
-    logger.info("Step 2/7: Signal detection")
+    # Step 2/6: Signal detection
+    logger.info("Step 2/6: Signal detection")
     signals, raw_signals = marketing_detector.detect_all_signals(
         company_name, domain,
         include_extended=include_extended_signals,
         location_config=location_config,
     )
-    logger.info("  Signals detected. Ads: %s, Hiring: %d, YouTube: %d results / %d views",
-                signals.ads.active_campaigns, signals.growth.hiring_velocity,
-                signals.social.youtube_total_results, signals.social.youtube_total_views)
+    logger.info("  Signals detected. Google Ads: %s, Hiring: %d, YouTube: %d videos / %d views",
+                signals.google_ads.active_campaigns, signals.linkedin_jobs.hiring_velocity,
+                signals.youtube.video_estimate, signals.youtube.total_views)
     if signals.seo:
-        logger.info("  SEO: $%.2f organic traffic value, paid_search_ratio=%.3f",
-                    signals.seo.organic_traffic_value_usd, signals.ads.paid_search_ratio)
+        logger.info("  SEO: $%.2f organic traffic value, %d keywords",
+                    signals.seo.organic_traffic_value_usd, signals.seo.keywords_count)
+    total_api_cost = sum(
+        getattr(v, 'api_cost', 0) for v in
+        [raw_signals.google_ads, raw_signals.linkedin_jobs, raw_signals.seo, raw_signals.content]
+        if v
+    )
+    logger.info("  DataForSEO API cost: $%.4f", total_api_cost)
 
     # Save summary (LLM-friendly) and individual raw signal files
     _save_json(output_dir, "02_signals.json", signals.model_dump(mode='json'))
@@ -192,54 +195,50 @@ def run_pipeline(
         if signal_data is not None:
             _save_json(signals_dir, f"{signal_name}.json", signal_data)
 
-    # Persist signals to Supabase for all matching prospects
-    _prospects = supabase_client.find_prospects_by_company(company_name, domain)
-    for _prospect in _prospects:
-        saved = supabase_client.save_prospect_signals(_prospect['id'], signals.model_dump(mode='json'))
-        if saved:
-            logger.info("  Saved signals to Supabase for prospect: %s", _prospect.get('person_name', _prospect['id']))
+    # Persist company profile to Supabase (upsert by domain)
+    _company_record = supabase_client.upsert_company({
+        'company_name': company_name,
+        'company_url': domain,
+        'industry': research.industry,
+        'country': research.country,
+        'city': research.city,
+        'annual_revenue': research.annual_revenue,
+        'employee_count': research.employee_count,
+    })
+    if _company_record:
+        logger.info("  Saved to Supabase company: %s (id: %s)", company_name, _company_record['id'])
 
-    # Step 3/7: Lead scoring
-    logger.info("Step 3/7: Lead scoring")
+    # Step 3/6: Lead scoring
+    logger.info("Step 3/6: Lead scoring")
     score = lead_scorer.score_lead(
         company_research=research,
         signals=signals,
         visibility_metrics=visibility_metrics or {}
     )
     logger.info("  Score: %.1f/100, Tier: %s", score.total_score, score.tier.value)
-    logger.info("  Breakdown - ICP: %.0f, Signals: %.0f, Visibility Gap: %.0f, Intent: %.0f",
-                score.icp_match_score, score.signal_strength_score,
-                score.visibility_gap_score, score.buying_intent_score)
+    logger.info("  Breakdown - SEO: %.0f, Visibility: %.0f, Google Ads: %.0f, "
+                "LinkedIn: %.0f, Content: %.0f, Meta: %.0f, YouTube: %.0f",
+                score.signal_scores.seo, score.signal_scores.visibility_gap,
+                score.signal_scores.google_ads, score.signal_scores.linkedin_jobs,
+                score.signal_scores.content, score.signal_scores.meta_ads,
+                score.signal_scores.youtube)
     _save_json(output_dir, "03_score.json", score.model_dump(mode='json'))
 
-    # Step 4/7: Contact enrichment
-    logger.info("Step 4/7: Contact enrichment")
-    contacts = []
-    if not skip_enrichment:
-        contacts = contact_finder.find_contacts(company_name, domain)
-        logger.info("  Found %d contacts", len(contacts))
-        if contacts:
-            contacts = email_verifier.verify_contacts(contacts)
-            logger.info("  Verified %d contact emails", len(contacts))
-    else:
-        logger.info("  Skipped")
-    _save_json(output_dir, "04_contacts.json", [c.model_dump(mode='json') for c in contacts])
-
-    # Step 5/7: Discovery prompt generation
-    logger.info("Step 5/7: Discovery prompt generation")
+    # Step 4/6: Discovery prompt generation
+    logger.info("Step 4/6: Discovery prompt generation")
     prompts = []
     if not skip_prompts:
         prompts = generator.generate_discovery_prompts(research, n_prompts=n_prompts, language=language)
         logger.info("  Generated %d discovery prompts", len(prompts))
     else:
         logger.info("  Skipped")
-    _save_json(output_dir, "05_prompts.json", prompts)
+    _save_json(output_dir, "04_prompts.json", [p.model_dump(mode='json') for p in prompts])
 
-    # Step 6/7: PDF report generation
-    logger.info("Step 6/7: PDF report generation")
+    # Step 5/6: PDF report generation
+    logger.info("Step 5/6: PDF report generation")
     report_bytes = b''
     if not skip_report and visibility_metrics:
-        report_path = output_report_path or str(output_dir / "06_report.pdf")
+        report_path = output_report_path or str(output_dir / "05_report.pdf")
         report_bytes = builder.build_outreach_report(
             company_research=research,
             visibility_metrics=visibility_metrics,
@@ -253,8 +252,8 @@ def run_pipeline(
         else:
             logger.info("  Skipped (no visibility_metrics provided)")
 
-    # Step 7/7: Outreach message generation
-    logger.info("Step 7/7: Outreach message generation")
+    # Step 6/6: Outreach message generation
+    logger.info("Step 6/6: Outreach message generation")
     messages = {}
     if not skip_messages and visibility_metrics:
         messages = message_generator.generate_personalized_message(
@@ -262,6 +261,7 @@ def run_pipeline(
             visibility_metrics=visibility_metrics,
             signals=signals,
             contact_id=contact_id,
+            contact_name=contact_name,
             language=language,
         )
         logger.info("  Generated messages for channels: %s", list(messages.keys()))
@@ -270,7 +270,7 @@ def run_pipeline(
             logger.info("  Skipped")
         else:
             logger.info("  Skipped (no visibility_metrics provided)")
-    _save_json(output_dir, "07_messages.json", messages)
+    _save_json(output_dir, "06_messages.json", messages)
 
     # Save final combined result
     result = {
@@ -279,8 +279,7 @@ def run_pipeline(
         "research": research.model_dump(mode='json'),
         "signals": signals.model_dump(mode='json'),
         "score": score.model_dump(mode='json'),
-        "contacts": [c.model_dump(mode='json') for c in contacts],
-        "prompts": prompts,
+        "prompts": [p.model_dump(mode='json') for p in prompts],
         "messages": messages,
         "report_generated": len(report_bytes) > 0,
         "output_dir": str(output_dir),
@@ -301,14 +300,14 @@ def main():
     parser.add_argument("--company", required=True, help="Company name")
     parser.add_argument("--domain", required=True, help="Company domain (e.g. stripe.com)")
     parser.add_argument("--industry", default="Unknown", help="Company industry")
-    parser.add_argument("--skip-enrichment", action="store_true", help="Skip contact enrichment")
     parser.add_argument("--basic-signals", action="store_true", help="Skip extended signal analysis")
     parser.add_argument("--skip-research", action="store_true", help="Skip website research")
     parser.add_argument("--skip-prompts", action="store_true", help="Skip prompt generation")
     parser.add_argument("--skip-report", action="store_true", help="Skip report generation")
     parser.add_argument("--skip-messages", action="store_true", help="Skip outreach message generation")
-    parser.add_argument("--n-prompts", type=int, default=10, help="Number of prompts to generate")
-    parser.add_argument("--contact-id", help="Supabase contact ID for message generation")
+    parser.add_argument("--n-prompts", type=int, default=3, help="Number of discovery prompts to generate")
+    parser.add_argument("--contact-id", help="Supabase contact ID for message personalization")
+    parser.add_argument("--contact-name", help="Contact name for message personalization")
     parser.add_argument("--report-path", help="Output path for PDF report")
     parser.add_argument("--research-path", help="Path to pre-built 01_research.json (from /research-company skill)")
     parser.add_argument("--country", help="ISO country code for signal detection (e.g. CL, MX, US). Auto-detected from research if omitted")
@@ -321,7 +320,6 @@ def main():
         company_name=args.company,
         domain=args.domain,
         industry=args.industry,
-        skip_enrichment=args.skip_enrichment,
         include_extended_signals=not args.basic_signals,
         skip_research=args.skip_research,
         skip_prompts=args.skip_prompts,
@@ -329,6 +327,7 @@ def main():
         skip_messages=args.skip_messages,
         n_prompts=args.n_prompts,
         contact_id=args.contact_id,
+        contact_name=args.contact_name,
         output_report_path=args.report_path,
         research_path=args.research_path,
         country=args.country,
